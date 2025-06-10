@@ -1,0 +1,636 @@
+# Print start message
+cat("Starting R script execution\n")
+
+# Try-catch block for error handling
+tryCatch({
+  job_id <- Sys.getenv("SLURM_ARRAY_TASK_ID")
+  if (job_id == "") {
+    job_id <- "default"
+  }
+  
+  # Print job ID
+  cat("Job ID:", job_id, "\n")
+
+
+# Loading packages --------------------------------------------------------
+library(tidyverse)
+library(fitlandr)
+library(depmixS4)
+library(tsDyn)
+library(future)
+library(foreach)
+library(doFuture)
+library(doRNG)
+library(psych)
+library(readr)
+library(stringr)
+library(purrr)
+
+env <- new.env()
+source("setarTest_mod.R", local = env) # the function is loaded manually into the workspace to ensure that the most recent version is used 
+source("star_mod.R", local = env) 
+setarTest_mod <- env$setarTest_mod   # overwrite in local scope explicitly
+  
+
+# Data-generating code ----------------------------------------------------
+
+  single_regime_sim <- function(d_m1, a1, delta, T, rel) { 
+    
+    # Generate latent values 
+    x <- numeric(T)# generate data for a single person 
+    ar1 <- exp(a1*delta) # discrete AR parameter
+    m1 <- 1 + d_m1 #  attractor location 
+    c1 <- m1 * (1 - ar1) # intercept
+    eta2 <-   1 / (1 - ar1^2) # total latent variance 
+    
+    x[1] <- rnorm(1, mean = m1, sd = sqrt(eta2))# start values (initial state)
+    for (t in 2:T) { # subsequent states
+      x[t] <- c1 + ar1 * x[t-1] + rnorm(1, mean  = 0, sd = 1) # set process variance to 1 
+    }
+    
+    # Apply measurement model 
+    sigma_epsilon2 <- eta2 * (1 - rel) / rel # variance measurement error 
+    x_obs <- x + rnorm(T, mean = 0, sd = sqrt(sigma_epsilon2)) # add measurement error 
+    x_obs <- as.data.frame(round(pmax(pmin(x_obs, 10), 1)))
+    names(x_obs) <- "var"
+    E <- mean(x < 1 | x > 10) # extent of bounding 
+    # calculate extent of bounding 
+    return(list(data = list(obs_data = x_obs, lat_data = x), 
+                vars = list(eta2 = eta2, E = E)))
+  }
+  
+  
+
+
+# Analysis function -------------------------------------------------------
+
+
+m1_fitlandr <- function(data) {
+  cat("Starting m1\n")
+  result <- tryCatch({
+    mod <- tryCatch({
+      fit_2d_ld(data, "var", n = T)
+    }, error = function(e) {
+      return(NULL)
+    })
+    
+    # stop here if the model fails 
+    if (is.null(mod)) {
+      return(list(no_regimes = NA, nc_models = NA))
+    }
+    
+    # No regimes is reflected in number of rows of output
+    output <- tryCatch({
+      summary(mod) %>% nrow()
+    }, error = function(e) {
+      NA  # Return NA if summary fails
+    })
+    
+    no_regimes <- ifelse(is.numeric(output) && output > 0, output, NA)
+    
+    # Since there's no formal model comparison, nc_models is always NA
+    nc_models <- NA
+    
+    list(no_regimes = no_regimes, nc_models = nc_models)
+  }, error = function(e) {
+    list(no_regimes = NA, nc_models = NA)
+  })
+  
+  return(result)
+}
+
+
+m2_caom <- function(data){
+  cat("Starting m2\n")
+  result <- tryCatch({
+    data <- data %>% mutate(previous_var = lag(var)) %>% na.omit() %>% 
+      mutate(delta_var = var - previous_var)
+    
+    mod1 <- tryCatch(
+      lm(delta_var ~ previous_var, data = data),
+      error = function(e) {
+        return(NA)
+      }
+    )
+    mod2 <- tryCatch(
+      lm(delta_var ~ previous_var + I(previous_var^2) + I(previous_var^3), data = data),
+      error = function(e) {
+        return(NA)
+      }
+    )
+    mod3 <- tryCatch(
+      lm(delta_var ~ previous_var + I(previous_var^2) + I(previous_var^3) + I(previous_var^4) + I(previous_var^5), data = data),
+      error = function(e) {
+        return(NA)
+      }
+    )
+
+    # Collect the models and their convergence status
+    models <- list(mod1, mod2, mod3)
+    converged <- sapply(models, function(mod) {
+      if (is.null(mod)) {
+        return(FALSE)
+      }
+      coefs <- tryCatch(coef(mod), error = function(e) return(NA))
+      if (anyNA(coefs)) {
+        return(FALSE)
+      } else {
+        return(TRUE)
+      }
+    })
+    nc_models <- which(!converged)
+    
+    # Filter out non-converged models
+    valid_models <- models[converged]
+    
+    # Stop if no model converged 
+    if (length(valid_models) < 1) {
+      return(list(no_regimes = NA, nc_models = paste(nc_models, collapse = ",")))
+    }
+    
+    # Do not perform ANOVA when only a single model converged 
+    if (length(valid_models) == 1) {
+      return(list(no_regimes = 1, nc_models = paste(nc_models, collapse = ",")))
+    }
+    
+    # Perform ANOVA on the valid models
+    results <- tryCatch({
+      if (length(valid_models) == 3) {
+        anova(valid_models[[1]], valid_models[[2]], valid_models[[3]])
+      } else {
+        anova(valid_models[[1]], valid_models[[2]])
+      }
+    }, error = function(e) NA)
+    
+    # make sure 'results' is a valid ANOVA table
+    if (!is.data.frame(results) || !"Pr(>F)" %in% colnames(results) || nrow(results) < 2) {
+      return(list(no_regimes = NA, nc_models = paste(nc_models, collapse = ",")))
+    }
+    
+    
+    # # If results is exactly NA, handle it; not sure what this means
+    # if (identical(results, NA)) {
+    #   return(list(no_regimes = NA, nc_models = paste(nc_models, collapse = ",")))
+    # }
+    # 
+    
+    # Check for NA in ANOVA results and handle according to the number of valid models
+    if (length(valid_models) == 3 && is.na(results[2, "Pr(>F)"])) nc_models <- c(nc_models, "2")
+    if (length(valid_models) == 3 && is.na(results[3, "Pr(>F)"])) nc_models <- c(nc_models, "3")
+    
+    
+      if (results[2, "Pr(>F)"] > .05) {
+        no_regimes <- 1
+      } else if (results[2, "Pr(>F)"] < .05 & (length(valid_models) == 2 || results[3, "Pr(>F)"] > .05)) {
+        no_regimes <- 2
+      } else {
+        no_regimes <- 3
+      }
+    
+    
+    return(list(no_regimes = no_regimes, nc_models = ifelse(length(nc_models) > 0, paste(nc_models, collapse = ","), NA)))
+  }, error = function(e) {
+    return(list(no_regimes = NA, nc_models = "1,2,3"))
+  })
+  
+}
+
+m3_hmm_aic <- function(data) {
+  cat("Starting m3\n")
+  
+  # Fit the models with error handling
+  fit_model <- function(mod) {
+    tryCatch({
+      fit <- suppressMessages(suppressWarnings(
+        fit(mod, emc = em.control(rand = FALSE))
+      ))
+      if (!is.null(fit) && isS4(fit) && !grepl("stopped without convergence", fit@message)) {
+        return(fit)
+      } else {
+        return(NULL)
+      }
+    }, error = function(e) {
+      return(NULL)
+    })
+  }
+  
+  mod1 <- tryCatch(
+    depmix(var ~ 1, data = data, nstates = 1),
+    error = function(e) {
+      return(NULL)
+    }
+  )
+  mod2 <- tryCatch(
+    depmix(var ~ 1, data = data, nstates = 2, trstart = runif(4)),
+    error = function(e) {
+      return(NULL)
+    }
+  )
+  mod3 <- tryCatch(
+    depmix(var ~ 1, data = data, nstates = 3, trstart = runif(9)),
+    error = function(e) {
+      return(NULL)
+    }
+  )
+  
+  fit_mod1 <- fit_model(mod1)
+  fit_mod2 <- fit_model(mod2)
+  fit_mod3 <- fit_model(mod3)
+  
+  
+  models <- list("1" = fit_mod1, "2" = fit_mod2, "3" = fit_mod3)
+  
+  aic_values <- sapply(models, function(mod) {
+    if (!is.null(mod)) {
+      tryCatch({
+        aic_value <- AIC(mod)
+        if (is.infinite(aic_value)) {
+          return(NA)
+        } else {
+          return(aic_value)
+        }
+      }, error = function(e) {
+        return(NA)
+      })
+    } else {
+      return(NA)
+    }
+  }, simplify = TRUE)
+  
+  # Identify which models did not converge
+  nc_models <- which(is.na(aic_values))
+  
+  # Check if all AIC values are NA before proceeding
+  if (all(is.na(aic_values))) {
+    return(list(no_regimes = NA, nc_models = "1,2,3"))
+  }
+  
+  # Return the best model based on AIC values
+  best_model <- names(which.min(aic_values))
+  no_regimes <- as.integer(best_model)
+  return(list(no_regimes = no_regimes, nc_models = if (length(nc_models) == 0) NA else paste(nc_models, collapse = ",")))
+}
+
+
+
+m4_hmm_bic <- function(data) {
+  cat("Starting m4\n")
+  
+  # Fit the models with error handling
+  fit_model <- function(mod) {
+    tryCatch({
+      fit <- suppressMessages(suppressWarnings(
+        fit(mod, emc = em.control(rand = FALSE))
+      ))
+      if (!is.null(fit) && isS4(fit) && !grepl("stopped without convergence", fit@message)) {
+        return(fit)
+      } else {
+        return(NULL)
+      }
+    }, error = function(e) {
+      return(NULL)
+    })
+  }
+  
+
+  mod1 <- tryCatch(
+    depmix(var ~ 1, data = data, nstates = 1),
+    error = function(e) {
+      return(NULL)
+    }
+  )
+  mod2 <- tryCatch(
+    depmix(var ~ 1, data = data, nstates = 2, trstart = runif(4)),
+    error = function(e) {
+      return(NULL)
+    }
+  )
+  mod3 <- tryCatch(
+    depmix(var ~ 1, data = data, nstates = 3, trstart = runif(9)),
+    error = function(e) {
+      return(NULL)
+    }
+  )
+  
+  fit_mod1 <- fit_model(mod1)
+  fit_mod2 <- fit_model(mod2)
+  fit_mod3 <- fit_model(mod3)
+  
+  # List of fitted models with numeric names
+  models <- list("1" = fit_mod1, "2" = fit_mod2, "3" = fit_mod3)
+  
+  # Check convergence and store BIC values for converged models
+  bic_values <- sapply(models, function(mod) {
+    if (!is.null(mod)) {
+      tryCatch({
+        bic_value <- BIC(mod)
+        if (is.infinite(bic_value)) {
+          return(NA)
+        } else {
+          return(bic_value)
+        }
+      }, error = function(e) {
+        return(NA)
+      })
+    } else {
+      return(NA)
+    }
+  }, simplify = TRUE)
+  
+  # Identify which models did not converge
+  nc_models <- which(is.na(bic_values))
+  
+  # If all BIC values are NA, return NA for no_regimes
+  if (all(is.na(bic_values))) {
+    return(list(no_regimes = NA, nc_models = "1,2,3"))
+  }
+  
+  
+  # Return the best model based on BIC values
+  best_model <- names(which.min(bic_values))
+  no_regimes <- as.integer(best_model)
+  return(list(no_regimes = no_regimes, nc_models = if (length(nc_models) == 0) NA else paste(nc_models, collapse = ",")))
+}
+
+
+m5_boots <- function(data) {
+  cat("Starting m5\n")
+
+  data <- ts(data, frequency = 1) # force all data to have the same frequency
+  
+  t1 <- tryCatch({
+    #use modified version of the setarTest function 
+    setarTest_mod(data, m = 1, trim = 0.1, nboot = 2000, test = "1vs", hpc = "foreach")
+  }, error = function(e) {
+    return(NULL)
+  })
+  
+  t2 <- tryCatch({
+    setarTest_mod(data, m=1, nboot=2000, trim=0.1, test= "2vs3", hpc = "foreach")
+  }, error = function(e) {
+    return(NULL)
+  })
+  
+  # # End if no model converged 
+  if (is.null(t1) && is.null(t2)) {
+    return(list(no_regimes = NA, nc_models = c("1,2,3")))
+  }
+  
+  
+  # Check which models did not converge
+  nc_models <- c()
+  if (is.null(t1)) {
+    nc_models <- c("1", "2", "3")
+  } else {
+    if (is.null(t1$PvalBoot) || is.na(t1$PvalBoot[1])) nc_models <- c(nc_models, "2")
+    if (is.null(t1$PvalBoot) || length(t1$PvalBoot) < 2 || is.na(t1$PvalBoot[2])) nc_models <- c(nc_models, "3")
+  }
+  
+  pv_t1 <- t1$PvalBoot
+  
+  # check whether t2 is null 
+  if (!is.null(t2)) {
+    pv_t2 <- t2$PvalBoot
+  } else {
+    pv_t2 <- NA
+  }
+
+  if (is.null(pv_t1) || is.na(pv_t1[1]) || pv_t1[1] > .05) {
+    no_regimes <- 1
+  } else if (pv_t1[1] < .05 && (is.null(pv_t2) || is.na(pv_t2[1]) || pv_t2[1] > .05)) {
+    no_regimes <- 2
+  } else {
+    no_regimes <- 3
+  }
+  
+  
+  return(list(no_regimes = no_regimes, nc_models = if (length(nc_models) == 0) NA else paste(nc_models, collapse = ",")))
+}
+
+m6_star <- function(data) {
+  cat("Starting m6\n")
+  data <- ts(data, frequency = 1) # force all data to have the same frequency
+  
+  capture_star_output <- function(data) {
+    temp_file <- tempfile()
+    # Open connections for capturing output and messages
+    con <- file(temp_file, open = "wt")
+    result <- NULL
+    
+    sink(con, type = "output")
+    sink(con, type = "message", append = TRUE)
+    
+    result <- try(
+      suppressMessages(suppressWarnings(
+        star_mod(data, m = 1, noRegimes = 3, sig = 0.05)
+      )),
+      silent = TRUE
+    )
+    
+    if (inherits(result, "try-error")) result <- NULL
+    
+    try(sink(NULL, type = "output"), silent = TRUE)
+    try(sink(NULL, type = "message"), silent = TRUE)
+    try(close(con), silent = TRUE)
+    # Read output and check for regime messages
+    out <- if (file.exists(temp_file)) readLines(temp_file) else character(0)
+    regime_2_needed <- any(grepl("The series is nonlinear", out), na.rm = TRUE)
+    regime_3_needed <- any(grepl("Regime 3 is needed", out), na.rm = TRUE)
+    
+    return(list(result = result, regime_2_needed = regime_2_needed, regime_3_needed = regime_3_needed))
+  }
+  
+  
+  captured_output <- capture_star_output(data)
+  output <- captured_output$result
+  regime_2_needed <- captured_output$regime_2_needed
+  regime_3_needed <- captured_output$regime_3_needed
+  # Initialize nc_models to store non-converged regimes
+  nc_models <- c()
+  
+  
+  # Handle the output and determine non-converged models
+  if (is.null(output)) { # only true if at least one model did not converge 
+    if (regime_3_needed) {#  the function tested of four regimes (although it should not have done that)
+      return(list(no_regimes = 3, nc_models = NA))
+    } else if (regime_2_needed) { # two regimes fitted better than a single but the three regime model did not converge 
+      return(list(no_regimes = 2, nc_models = "3"))# the non-converged model is a four-regime model 
+    } else {
+      # no model comparison was made, meaning that model 1 and or model 2 did not converge (we do not know which of both)
+      ### IMPORTANT NOTE: This means that the convergence rate of Model 1 cannot be evaluaed in the DGM1 as -->
+      ### ok I'm actually not sure whether it not simply keeps the first model if that fits well; I need to look into this 
+      return(list(no_regimes = NA, nc_models = c("1", "2", "3")))
+    }
+  } else {# all models converged 
+    # note: if a single > two regimes, there is no further test for three regimes 
+    no_regimes <- ifelse(is.null(output$noRegimes), 1, output$noRegimes)
+    return(list(no_regimes = no_regimes, nc_models = NA))
+  }
+}
+
+  
+
+
+# Functions to set up the simulation --------------------------------------
+
+#Function to analyze one dataset with six methods
+analyze_with_methods <- function(data) {
+  results <- list(
+    m1_fitlandr = m1_fitlandr(data),
+    m2_caom = m2_caom(data),
+    m3_hmm_aic = m3_hmm_aic(data),
+    m4_hmm_bic = m4_hmm_bic(data),
+    m5_boots = m5_boots(data),
+    m6_star = m6_star(data)
+  )
+
+  # Extract no_regimes and nc_models for each method
+  no_regimes_list <- lapply(results, function(res) res$no_regimes)
+  nc_models_list <- lapply(results, function(res) res$nc_models)
+
+  return(list(
+    no_regimes = no_regimes_list,
+    nc_models = nc_models_list
+  ))
+}
+
+simulate <- function(num_repetitions, d_m1,  a1,  delta, T, rel) {
+  sim_data <- vector("list", num_repetitions) 
+  combined_results <- vector("list", num_repetitions) 
+  
+  for (rep in 1:num_repetitions) {
+    # Simulate the data for this repetition
+    simulated_output <- single_regime_sim(d_m1, a1,delta, T, rel)
+    simulated_data <- simulated_output$data$obs_data
+
+    # Quick check of data quality
+    data_sd <- sd(simulated_data$var)
+    if (data_sd < 0.01) {
+      cat("Warning: Very small SD (", round(data_sd, 5), ") in replication ", rep, "\n")
+    }
+    
+    # Analyze the simulated data using all methods
+    analysis_results <- analyze_with_methods(simulated_data)
+    
+    # Check the structure of analysis results
+    if (!is.list(analysis_results) || !all(c("no_regimes", "nc_models") %in% names(analysis_results))) {
+      stop(paste("Analysis results for repetition", rep, "are not structured correctly."))
+    }
+    
+    # Ensure that no_regimes and nc_models have the correct length
+    if (length(analysis_results$no_regimes) != length(analysis_results$nc_models)) {
+      stop(paste("Mismatch in length of no_regimes and nc_models for repetition", rep))
+    }
+    
+    sim_data[[rep]] <- list(
+      obs_data = simulated_output$data$obs_data, 
+      lat_data = simulated_output$data$lat_data
+    )
+
+    # Store the simulated data, analysis results, seed, and parameters
+    combined_results[[rep]] <- list(
+      analysis_results = analysis_results,
+      parameters = list(
+
+        eta2 = simulated_output$vars$eta2,
+        E = simulated_output$vars$E, 
+        d_m1 = d_m1,
+        a1 = a1,
+        delta = delta,
+        T = T,
+        rel = rel
+      )
+    )
+  
+}
+  return(list(sim_data = sim_data,
+              combined_results = combined_results))
+
+}
+
+
+
+
+
+# Define parameters and start simulation ----------------------------------
+
+
+param_grid <- readRDS("/home/e329964/regime_sim/analysis/DGM_1_param_grid.rds")
+d_m1 <- param_grid[job_id,"d_m1"]
+a1 <- param_grid[job_id,"a1"]
+delta <- param_grid[job_id,"delta"]
+rel <- param_grid[job_id,"rel"]
+T <- param_grid[job_id,"T"]
+
+
+num_repetitions <- 1000
+unique_seed <- sample(1:.Machine$integer.max, 1)
+
+# Set the setup strategy to 'sequential' to prevent connection issues
+options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
+
+# Register the RNG with a unique seed
+plan(multisession, workers = availableCores() - 1)
+registerDoFuture()
+registerDoRNG(seed = unique_seed)
+
+
+# run simulations
+simulation_results <- simulate(num_repetitions, d_m1, a1,  delta, T, rel)
+
+# Create a unique key for the current parameter combination
+param_key <- paste(d_m1, a1, delta, rel, T, sep = "_")
+
+# update
+lock_file <- "/home/e329964/regime_sim/analysis/DGM_1_results.lock"
+data_file <- "/home/e329964/regime_sim/analysis/DGM_1_data.rds"
+output_file <- "/home/e329964/regime_sim/analysis/DGM_1_results.rds"
+
+
+# Does a lock file already exist?
+while (file.exists(lock_file)) {
+  Sys.sleep(1)  # Wait for 1 second before checking again
+}
+
+# if not, create a lock file 
+file.create(lock_file)
+
+# read master files
+master_results <- readRDS(output_file)
+master_data <- readRDS(data_file)
+
+
+# Create a subentry identified by the unique_seed
+master_results[[param_key]][[as.character(unique_seed)]] <- list(
+  job_id = job_id,
+  unique_seed = unique_seed,
+  results = simulation_results[[2]]
+)
+
+# Create a subentry identified by the unique_seed
+master_data[[param_key]][[as.character(unique_seed)]] <- list(
+  job_id = job_id,
+  unique_seed = unique_seed,
+  results = simulation_results[[1]]
+)
+
+
+# update 
+
+saveRDS(master_results, file = output_file)
+saveRDS(master_data, file = data_file)
+
+# Remove the lock file to allow other jobs to write
+file.remove(lock_file)
+
+cat("Saving results to file\n")
+
+# Print end messages
+cat("R script execution completed\n")
+
+}, error = function(e) {
+  # Print error message
+  cat("An error occurred: ", e$message, "\n")
+})
+
+

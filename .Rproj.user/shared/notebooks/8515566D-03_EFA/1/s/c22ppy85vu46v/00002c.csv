@@ -1,0 +1,5 @@
+"0","loadings_intensity_all_pro_2 <- cbind(item_text_intensity_all, loadings_intensity_all_pro_2, intensity_predictor_items_cors)
+"
+"2","Error in data.frame(..., check.names = FALSE) : 
+  arguments imply differing number of rows: 20, 14
+"

@@ -1,0 +1,9 @@
+"0","final_items_intensity_init <- read_csv(here(""Data"", ""final_var_intensity_init.csv"")) %>% pull()
+"
+"2","[1mRows: [22m[34m2[39m [1mColumns: [22m[34m1[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m─────────────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m (1): final_var_selection.m_intensity_init_ESM.item_sets..90._vars."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
