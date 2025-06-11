@@ -7,7 +7,7 @@ This repository contains all code, data, and configuration needed to reproduce t
 ### Step 1: Download the repository
 Chose one of these options: 
 
-- **Option A:** Download the repository as a ZIP file by clicking the green **Code** button on the top right of this page and selecting **Download ZIP**. 
+- **Option A:** Download the repository as a ZIP file by clicking the green *Code* button on the top right of this page
 - **Option B:** Clone the repository using Git (requires Git to be installed):
 
 ```
