@@ -1,5 +1,0 @@
-"0","# Five factors oblimin rotation
-EFA_intensity_pers_obl_5<- fa(intensity_pers_dat, nfactors = 5, rotate= ""oblimin"")
-"
-"2","Loading required namespace: GPArotation
-"
