@@ -6,8 +6,9 @@ This repository contains all code, data, and configuration needed to reproduce t
 
 ### Step 1: Download the repository
 Chose one of these options: 
-1. Dowlonad the repository as ZIP file by clicking the green code button on the top right
-2. Clone the repository using git 
+
+- **Option A:** Download the repository as a ZIP file by clicking the green **Code** button on the top right of this page and selecting **Download ZIP**. 
+- **Option B:** Clone the repository using Git (requires Git to be installed):
 
 ```
 git clone https://github.com/anabelbue/predicting_selfcontrol.git
@@ -20,7 +21,7 @@ Make sure the following software is installed on your system:
 
 - [Docker](https://www.docker.com/get-started)
 - [GNU Make](https://www.gnu.org/software/make/)
-- - [Git](https://git-scm.com/) (only needed for Option 2 in Step 1)
+- [Git](https://git-scm.com/) (only needed if you choose Option B above)
 
 ### Step 2: Clone the repository
 
