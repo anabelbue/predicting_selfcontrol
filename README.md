@@ -47,4 +47,4 @@ plots/
 
 Please note that in the default version, time-intensive computational steps are excluded (i.e., they will not be run again, but the already generated output saved in the repository will be used).  
 This concerns the elastic net models in the script `03_item_selection.R`.  
-To also reproduce these models, simply change `run_elastic_net_models` from `FALSE` to `TRUE` at the top of that script.
+To also reproduce these models, simply change `run_elastic_net_models` from `FALSE` to `TRUE` in the section of that script. 
