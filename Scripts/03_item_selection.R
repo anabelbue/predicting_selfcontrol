@@ -42,43 +42,47 @@ all_tasks <- lapply(outcome_vars, function(outcome_var) { # change here
 
 
 # Running elastic net models (takes > 25 hours) ---------------------------
-### You can also skipt this section and simply load the saved output of the elastic net models 
+run_elastic_net <- FALSE  # change to TRUE to run the model
+# Currently set to FALSE due to the long run time of the model 
 
-#save all results in one masterlist 
-outcome_list <- list()
-set.seed(142837)
-
-plan("multisession", workers = 4)
-options(future.seed = TRUE)
-
-start_time <- Sys.time()
-
-# Loop through each task (outcome)
-for (i in 1:length(all_tasks)) {
-  task <- all_tasks[[i]]
-  outcome_var <- outcome_vars[i] # change here 
+if (run_elastic_net) {
+  #save all results in one masterlist
+  outcome_list <- list()
+  set.seed(142837)
   
-  # Initialize a list to store the results of the 10 repetitions for this task
-  task_results <- list()
+  plan("multisession", workers = 4)
+  options(future.seed = TRUE)
   
-  # Repeat the modeling process 10 times
-  for (j in 1:10) {
-    rep_results <- perform_elastic_net(task)
-    task_results[[paste0("rep_", j)]] <- rep_results
+  start_time <- Sys.time()
+  
+  # Loop through each task (outcome)
+  for (i in 1:length(all_tasks)) {
+    task <- all_tasks[[i]]
+    outcome_var <- outcome_vars[i] # change here
+    
+    # Initialize a list to store the results of the 10 repetitions for this task
+    task_results <- list()
+    
+    # Repeat the modeling process 10 times
+    for (j in 1:10) {
+      rep_results <- perform_elastic_net(task)
+      task_results[[paste0("rep_", j)]] <- rep_results
+    }
+    
+    # Store the results for this outcome in the master list
+    outcome_list[[outcome_var]] <- task_results
   }
   
-  # Store the results for this outcome in the master list
-  outcome_list[[outcome_var]] <- task_results
+  end_time <- Sys.time()
+  total_duration <- end_time - start_time # 25.55 hours
+  future::plan("sequential")
+  
+  
+  # save outcome list
+  if (!dir.exists("ML results")) dir.create("ML results", recursive = TRUE)
+  saveRDS(outcome_list, here("ML results", "elastic_net_results_2304.rds"))
+  
 }
-
-end_time <- Sys.time()
-total_duration <- end_time - start_time # 25.55 hours 
-future::plan("sequential")
-
-
-# save outcome list
-saveRDS(outcome_list, here("ML results", "elastic_net_results_2304.rds"))
-
 
 
 # Performance check elastic net models ------------------------------------
