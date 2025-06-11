@@ -3,25 +3,29 @@
 This repository contains all code, data, and configuration needed to reproduce the analysis for the article  
 "Linking Trait Items of Self-Control to Broader Conceptualizations of Self-Control Using Machine Learning."
 
-## Steps to Reproduce
 
-### Step 1: Install prerequisites
-
-Make sure the following software is installed on your system:
-
-- [Git](https://git-scm.com/)
-- [Docker](https://www.docker.com/get-started)
-- [GNU Make](https://www.gnu.org/software/make/)  
-  (On macOS, you can run `brew install make` if not already installed)
-
-### Step 2: Clone the repository
-
-Open your terminal and run:
+### Step 1: Download the repository
+Chose one of these options: 
+1. Dowlonad the repository as ZIP file by clicking the green code button on the top right
+2. Clone the repository using git 
 
 ```
 git clone https://github.com/anabelbue/predicting_selfcontrol.git
 cd predicting_selfcontrol
 ```
+
+### Step 2: Install prerequisites
+
+Make sure the following software is installed on your system:
+
+- [Docker](https://www.docker.com/get-started)
+- [GNU Make](https://www.gnu.org/software/make/)
+- - [Git](https://git-scm.com/) (only needed for Option 2 in Step 1)
+
+### Step 2: Clone the repository
+
+Open your terminal and run:
+
 
 ### Step 3: Run the full pipeline
 
@@ -33,8 +37,7 @@ make all
 
 This will:
 
-- Use the [`repro`](https://github.com/aaronpeikert/repro) package to configure the software environment
-- Automatically install all required R packages (via Docker)
+- Set up the entire R environment and install packages automatically via Docker (using the [`repro`](https://github.com/aaronpeikert/repro) package)
 - Run the entire analysis pipeline
 - Create all outputs in the appropriate folders:
 
