@@ -35,7 +35,7 @@ This will:
 
 - Use the [`repro`](https://github.com/aaronpeikert/repro) package to configure the software environment
 - Automatically install all required R packages (via Docker)
-- Run the entire analysis pipeline (based on the R scripts listed in `Scripts/00_repro.R`)
+- Run the entire analysis pipeline
 - Create all outputs in the appropriate folders:
 
 ```
@@ -46,5 +46,4 @@ plots/
 ```
 
 Please note that in the default version, time-intensive computational steps are excluded (i.e., they will not be run again, but the already generated output saved in the repository will be used).  
-This concerns the elastic net models in the script `03_item_selection.R`.  
-To also reproduce these models, simply change `run_elastic_net_models` from `FALSE` to `TRUE` in the section of that script. 
+This concerns the elastic net models in the script `03_item_selection.R`. To also reproduce these models, simply change `run_elastic_net_models` from `FALSE` to `TRUE` in the section of that script. 
