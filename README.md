@@ -1,4 +1,4 @@
-# Reproducing the Analysis
+# Reproducing the results
 
 This repository contains all code, data, and configuration needed to reproduce the analysis for the article  
 "Linking Trait Items of Self-Control to Broader Conceptualizations of Self-Control Using Machine Learning."
