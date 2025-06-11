@@ -23,10 +23,6 @@ Make sure the following software is installed on your system:
 - [GNU Make](https://www.gnu.org/software/make/)
 - [Git](https://git-scm.com/) (only needed if you choose Option B above)
 
-### Step 2: Clone the repository
-
-Open your terminal and run:
-
 
 ### Step 3: Run the full pipeline
 
