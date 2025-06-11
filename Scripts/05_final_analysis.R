@@ -268,7 +268,7 @@ single_items <- c(bfi1 = "talkativeness_1",
                   MISCS4 = "metacognitive_knowledge_1")
 
 
-freq_pers_dat <- prepare_vars(freq_pers_dat, single_items, composites)
+freq_pers_dat_final <- prepare_vars(freq_pers_dat, single_items, composites)
 
 freq_pers_dat_final <- cbind(freq_pers_dat_final, data[, "freq_con_pers_ESM"]) %>% filter(!is.na(freq_con_pers_ESM))
 

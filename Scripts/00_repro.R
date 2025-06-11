@@ -1,8 +1,10 @@
+message("Running 00_repro.R")
 #' ---
 #' title: "Reproducible workflow for predicting self-control project"
 #' output: none
 #' repro:
-#'   packages:
+#'   packages:th
+#'     - repro
 #'     - tidyverse
 #'     - mlr3verse
 #'     - glmnet

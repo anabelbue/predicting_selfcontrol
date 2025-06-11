@@ -92,7 +92,7 @@ item_text_freq_all <- item_text_freq_all[match(final_items_freq_all, item_text_f
 # add bivariate correlations between items and predictor 
 freq_predictor_items_cors <- round(cor(freq_all_dat, data$freq_con_all_ESM, use ="complete.obs"),2)
 
-
+if (!dir.exists("EFA results")) dir.create("EFA results", recursive = TRUE)
 loadings_freq_all_obl_3 <- cbind(item_text_freq_all, loadings_freq_all_obl_3, freq_predictor_items_cors)
 write_xlsx(loadings_freq_all_obl_3, here("EFA results", "freq_all_obl_3.xlsx"))
 
