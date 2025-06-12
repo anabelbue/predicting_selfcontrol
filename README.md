@@ -1,7 +1,7 @@
 # Reproducing the results
 
 This repository contains all code, data, and configuration needed to reproduce the analysis for the article  
-"Linking Trait Items of Self-Control to Broader Conceptualizations of Self-Control Using Machine Learning."
+*Linking Trait Items of Self-Control to Broader Conceptualizations of Self-Control Using Machine Learning* (https://doi.org/10.31234/osf.io/3jsy8_v1)
 
 
 ### Step 1: Download the repository
