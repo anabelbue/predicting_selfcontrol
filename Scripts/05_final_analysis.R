@@ -705,7 +705,7 @@ results_table <- data.frame(
 for (i in seq_along(model)) {
   
   # Handle inhibition models explicitly
-  if (grepl("inhibition", model[i]) || is.null(datasets[[i]]) || is.na(outcome_vars[i])) {
+  if (grepl("inhibition", model[i])) {
     results_table <- rbind(results_table, data.frame(
       Model = model[i],
       Narrow_items = 0,
