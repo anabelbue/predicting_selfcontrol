@@ -3,30 +3,28 @@
 This repository contains all code, data, and configuration needed to reproduce the analysis for the article  
 *[Linking Trait Items of Self-Control to Broader Conceptualizations of Self-Control Using Machine Learning](https://doi.org/10.31234/osf.io/3jsy8_v1)*
 
+### Step 1: Install prerequisites
 
-### Step 1: Download the repository
-Chose one of these options: 
+Make sure the following software is installed on your system:
 
-- **Option A:** Download the repository as a ZIP file by clicking the green *Code* button on the top right of this page
-- **Option B:** Clone the repository using Git (requires Git to be installed):
+- [Git](https://git-scm.com/) 
+- [Docker](https://www.docker.com/get-started)
+- [GNU Make](https://www.gnu.org/software/make/)
+
+### Step 2: Clone the repository 
+
+Open your system terminal (e.g., Terminal app on macOS or Git Bash on Windows) and run:
 
 ```
 git clone https://github.com/anabelbue/predicting_selfcontrol.git
 cd predicting_selfcontrol
 ```
 
-### Step 2: Install prerequisites
-
-Make sure the following software is installed on your system:
-
-- [Docker](https://www.docker.com/get-started)
-- [GNU Make](https://www.gnu.org/software/make/)
-- [Git](https://git-scm.com/) (only needed if you choose Option B above)
-
-
 ### Step 3: Run the full pipeline
 
-In your terminal, run:
+1. Make sure Docker is running in the background.
+2. Open the R project by double-clicking the predicting_selfcontrol.Rproj file (or open RStudio and load the .Rproj manually).
+3. In the RStudio Terminal tab, type:
 
 ```
 make all
