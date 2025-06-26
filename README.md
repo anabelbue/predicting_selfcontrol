@@ -22,8 +22,8 @@ cd predicting_selfcontrol
 
 ### Step 3: Run the full pipeline
 
-1. Make sure Docker is running in the background.
-2. Open the R project by double-clicking the predicting_selfcontrol.Rproj file (or open RStudio and load the .Rproj manually).
+1. Make sure Docker is running in the background
+2. Open the R project by double-clicking the predicting_selfcontrol.Rproj file (or open RStudio and load the .Rproj manually)
 3. In the RStudio Terminal tab, type:
 
 ```
