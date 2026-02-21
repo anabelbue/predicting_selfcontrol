@@ -8,6 +8,7 @@ library(stringr)
 library(tidyverse)
 library(corrplot)
 library(readr)
+library(lme4)
 
 
 # Load data ---------------------------------------------------------------
@@ -127,6 +128,7 @@ for(v in ESM_vars){
 mtext("Distributions of state vars", outer = TRUE, cex = 1.5)  
 dev.off()
 
+
 # Trait items  ------------------------------------------------------------
 trait_dat <- dat %>% select(all_of(c(demo_vars, names_trait_items))) %>% 
              filter(rowSums(is.na(.)) <= 100) # only keep the rows where the responses to the baseline measures are stored 
@@ -228,11 +230,113 @@ describe(long_missings_vars$missing_count) # also only very little missing data 
 
 
 
+# Reliability of the person-indices ---------------------------------------
+ESM_dat_prep <- ESM_dat_all %>% 
+  filter(!Participant == "218") %>% 
+  group_by(Participant) %>% mutate(conflict= ifelse((Con_Exp == 1 | Con_Exp == 2 | Con_Exp == 3), 1, 0),
+                                   init_conflict = ifelse(Con_Exp == 1, 1, 0),
+                                   pers_conflict = ifelse(Con_Exp == 2, 1, 0),
+                                   inhib_conflict = ifelse(Con_Exp == 3, 1, 0),
+                                   intensity_init = eINIT_CONFLstrength, 
+                                   intensity_pers = eCONT_CONFLstrength,
+                                   intensity_inhi = eHIBIT_CONFLstrength)
 
 
+outcomes <- c("conflict", "intensity_all", "success_all", "init_conflict","pers_conflict",  "inhib_conflict", 
+              "intensity_init", "intensity_pers", "intensity_inhi","success_init","success_pers","success_inhi")
 
 
+binary_outcomes <- c("conflict", "init_conflict", "pers_conflict", "inhib_conflict")
 
+# Spearman–Brown style reliability of the mean based on ICC and avg #obs
+rel_mean <- function(icc, Tbar) {
+  (icc * Tbar) / (1 + icc * (Tbar - 1))
+}
+
+# Helper: consider particiapnts for each outcome that are also included in the ML models 
+filter_for_outcome <- function(dat, outcome, is_binary) {
+  dat %>%
+    group_by(Participant) %>%
+    {
+      if (is_binary) {
+        # keep participants with at least one conflict 
+        filter(., any(.data[[outcome]] == 1, na.rm = TRUE))
+      } else {
+        # keep participants with at least one non-missing value
+        filter(., any(!is.na(.data[[outcome]])))
+      }
+    } %>%
+    ungroup()
+}
+
+
+rel_results <- lapply(outcomes, function(outcome) {
+  
+  is_binary <- outcome %in% binary_outcomes
+  
+  dat_sub <- filter_for_outcome(ESM_dat_prep, outcome, is_binary)
+  
+  n_participants <- dat_sub %>% distinct(Participant) %>% nrow()
+  
+  # number of observations that actually contribute to the model for this outcome
+  if (is_binary) {
+    # binary: 0/1 rows both contribute; drop only missing outcome rows if any exist
+    dat_model <- dat_sub %>% filter(!is.na(.data[[outcome]]))
+  } else {
+    # metric: only non-missing rows contribute
+    dat_model <- dat_sub %>% filter(!is.na(.data[[outcome]]))
+  }
+  
+  # average number of contributing observations per participant
+  Tbar <- dat_model %>%
+    count(Participant, name = "n_obs") %>%
+    summarise(Tbar = mean(n_obs)) %>%
+    pull(Tbar)
+  
+  # Fit model + compute ICC
+  if (n_participants < 2 || nrow(dat_model) < 3) {
+    icc <- NA_real_
+    reliability <- NA_real_
+  } else {
+    if (is_binary) {
+      mod <- glmer(
+        as.formula(paste0(outcome, " ~ 1 + (1 | Participant)")),
+        data = dat_model,
+        family = binomial
+      )
+      var_between <- as.numeric(VarCorr(mod)$Participant[1])
+      icc <- var_between / (var_between + (pi^2 / 3))  # latent-scale ICC
+    } else {
+      mod <- lmer(
+        as.formula(paste0(outcome, " ~ 1 + (1 | Participant)")),
+        data = dat_model
+      )
+      var_between <- as.numeric(VarCorr(mod)$Participant[1])
+      var_within  <- sigma(mod)^2
+      icc <- var_between / (var_between + var_within)
+    }
+    
+    reliability <- rel_mean(icc, Tbar)
+  }
+  
+  data.frame(
+    outcome = outcome,
+    n_participants = n_participants,
+    mean_n_obs = Tbar,
+    ICC = icc,
+    reliability = reliability
+  )
+})
+
+
+rel_results_df <- bind_rows(rel_results) %>%
+  mutate(
+    ICC = round(ICC, 2),
+    reliability = round(reliability, 2),
+    mean_n_obs = round(mean_n_obs, 2)
+  )
+
+writexl::write_xlsx(rel_results_df, here("Tables", "reliability_person_indices.xlsx"))
 
 
 
