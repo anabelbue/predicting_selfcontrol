@@ -689,18 +689,86 @@ outcome_vars <- c("freq_con_all_ESM", "m_intensity_all_ESM", "m_success_all_ESM"
                   "m_intensity_init_ESM", "m_intensity_pers_ESM", NA, 
                   "m_success_init_ESM", "m_success_pers_ESM", NA)
 
+# 
+# # Initialize output table
+# results_table <- data.frame(
+#   Model = character(),
+#   Narrow_items = integer(),
+#   R2_narrow = numeric(),
+#   Other_items = integer(),
+#   Delta_R2 = numeric(),
+#   SC_items = character(),
+#   Other_items = character(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# for (i in seq_along(model)) {
+#   
+#   # Handle inhibition models explicitly
+#   if (grepl("inhibition", model[i])) {
+#     results_table <- rbind(results_table, data.frame(
+#       Model = model[i],
+#       Narrow_items = 0,
+#       R2_narrow = NA,
+#       Other_items = 0,
+#       Delta_R2 = NA,
+#       SC_items = "",
+#       Other_items = "",
+#       stringsAsFactors = FALSE
+#     ))
+#     next
+#   }
+#   
+#   # Get full item set
+#   all_items <- final_items[[i]]
+#   
+#   # Get narrow SC items
+#   narrow_items <- codebook %>%
+#     filter(item_name %in% final_items[[i]], narrow_SC == "yes") %>%
+#     pull(item_name)
+#   
+#   # Subset data for narrow model
+#   narrow_data <- data %>%
+#     dplyr::select(all_of(narrow_items), all_of(outcome_vars[i])) %>%
+#     filter(!is.na(.data[[outcome_vars[i]]]))
+# 
+#   all_data <- data %>% 
+#     dplyr::select(all_of(all_items), all_of(outcome_vars[i])) %>%
+#     filter(!is.na(.data[[outcome_vars[i]]]))
+#   
+#   # Run unregularized models
+#   results_narrow <- unregularized_analysis(narrow_data, outcome_vars[i])
+#   output_narrow <- performance_comparison(results_narrow)
+#   r2_narrow <- output_narrow$avg_rsq
+#   
+#   results_all <- unregularized_analysis(all_data, outcome_vars[i])
+#   output_all <- performance_comparison(results_all)
+#   delta_r2 <- output_all$avg_rsq - r2_narrow
+#   
+#   # Create item summaries
+#   narrow_list <- paste(narrow_items, collapse = ", ")
+#   other_items <- setdiff(all_items, narrow_items)
+#   other_list <- paste(other_items, collapse = ", ")
+#   
+#   # Add to table
+#   results_table <- rbind(results_table, data.frame(
+#     Model = model[i],
+#     Narrow_items = length(narrow_items),
+#     R2_narrow = round(r2_narrow, 3),
+#     Other_items = length(other_items),
+#     Delta_R2 = round(delta_r2, 3),
+#     SC_items = narrow_list,
+#     Other_items = other_list,
+#     stringsAsFactors = FALSE
+#   ))
+# }
+# 
+# writexl::write_xlsx(results_table, here("Tables", "RQ3_Output.xlsx"))
+# 
+# df <- readxl::read_xlsx(here("Tables", "RQ3_Output.xlsx"))
 
-# Initialize output table
-results_table <- data.frame(
-  Model = character(),
-  Narrow_items = integer(),
-  R2_narrow = numeric(),
-  Other_items = integer(),
-  Delta_R2 = numeric(),
-  SC_items = character(),
-  Other_items = character(),
-  stringsAsFactors = FALSE
-)
+
+plot_data_list <- list()  # collect fold-level results for plotting later
 
 for (i in seq_along(model)) {
   
@@ -731,24 +799,28 @@ for (i in seq_along(model)) {
   narrow_data <- data %>%
     dplyr::select(all_of(narrow_items), all_of(outcome_vars[i])) %>%
     filter(!is.na(.data[[outcome_vars[i]]]))
-
-  all_data <- data %>% 
+  
+  all_data <- data %>%
     dplyr::select(all_of(all_items), all_of(outcome_vars[i])) %>%
     filter(!is.na(.data[[outcome_vars[i]]]))
   
-  # Run unregularized models
-  results_narrow <- unregularized_analysis(narrow_data, outcome_vars[i])
-  output_narrow <- performance_comparison(results_narrow)
-  r2_narrow <- output_narrow$avg_rsq
+  # Run unregularized models ONCE and keep both summary + folds
+  out_narrow <- unregularized_cv_output(narrow_data, outcome_vars[i])
+  r2_narrow  <- out_narrow$summary$avg_rsq
   
-  results_all <- unregularized_analysis(all_data, outcome_vars[i])
-  output_all <- performance_comparison(results_all)
-  delta_r2 <- output_all$avg_rsq - r2_narrow
+  out_all <- unregularized_cv_output(all_data, outcome_vars[i])
+  delta_r2 <- out_all$summary$avg_rsq - r2_narrow
+  
+  # Store fold-level rsq for plotting later (optional but recommended)
+  plot_data_list[[i]] <- dplyr::bind_rows(
+    dplyr::mutate(out_narrow$folds, Model = model[i], Spec = "Narrow"),
+    dplyr::mutate(out_all$folds,    Model = model[i], Spec = "All")
+  )
   
   # Create item summaries
   narrow_list <- paste(narrow_items, collapse = ", ")
   other_items <- setdiff(all_items, narrow_items)
-  other_list <- paste(other_items, collapse = ", ")
+  other_list  <- paste(other_items, collapse = ", ")
   
   # Add to table
   results_table <- rbind(results_table, data.frame(
@@ -763,7 +835,56 @@ for (i in seq_along(model)) {
   ))
 }
 
-writexl::write_xlsx(results_table, here("Tables", "RQ3_Output.xlsx"))
+plot_data <- dplyr::bind_rows(plot_data_list)
+
+plot_data <- plot_data %>%
+  mutate(
+    Model = factor(Model, levels = model),
+    Model = fct_recode(Model,
+                       "frequency across conflicts" = "frequency across self-control conflicts",
+                       "intensity across conflicts"  = "intensity across self-control conflicts",
+                       "success across conflicts" = "success across self-control conflicts"),
+    Spec  = factor(Spec, levels = c("Narrow", "All"))
+  )
 
 
+library(papaja)
 
+png(
+  filename = here("Plots", "Explained_variance_plot.png"),
+  width = 10* 300,
+  height = 4 * 300,
+  res = 300
+)
+ggplot(plot_data, aes(x = Model, y = rsq, fill = Spec)) +
+  geom_boxplot(
+    width = 0.7,
+    position = position_dodge(width = 0.75),
+    outlier.shape = NA
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "solid",
+    color = "black",
+    linewidth = 0.4
+  ) +
+  scale_x_discrete(drop = FALSE) +   
+  coord_cartesian(ylim = c(-0.3, 0.45)) +
+  scale_fill_manual(
+    values = c(
+      "Narrow" = "#4DAF4A",
+      "All"    = "#377EB8"
+    ),
+    labels = c(
+      "Narrow" = "Only self-control items",
+      "All"    = "All items"
+    )
+  ) +
+  labs(x = NULL, y = expression(R^2), fill = NULL) +
+  theme_apa() +
+  theme(
+    legend.position = "top",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+dev.off()
