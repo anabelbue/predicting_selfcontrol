@@ -1,0 +1,33 @@
+---
+title: "Package depdendencies"
+repro:
+  packages:
+    - here
+    - psych
+    - stringr
+    - tidyverse
+    - corrplot
+    - readr
+    - lme4
+    - mlr3verse
+    - paradox
+    - mlr3tuning
+    - glmnet
+    - DALEX
+    - purrr
+    - checkmate
+    - rpart.plot
+    - future
+    - writexl
+    - performance
+    - paran
+    - gridExtra
+    - forcats
+    - lgr
+    - RColorBrewer
+    - papaja
+    - readxl
+    - openxlsx
+---
+
+This file exists only to declare package dependencies for `repro::automate()`. 

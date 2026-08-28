@@ -4,3 +4,30 @@ FROM rocker/verse:4.4.1
 WORKDIR /home/rstudio
 RUN apt-get update -y && apt-get install -y rsync
 RUN tlmgr update --self && tlmgr install collection-latexrecommended
+RUN install2.r --error --skipinstalled \ 
+  checkmate \ 
+  corrplot \ 
+  DALEX \ 
+  forcats \ 
+  future \ 
+  glmnet \ 
+  gridExtra \ 
+  here \ 
+  lgr \ 
+  lme4 \ 
+  mlr3tuning \ 
+  mlr3verse \ 
+  openxlsx \ 
+  papaja \ 
+  paradox \ 
+  paran \ 
+  performance \ 
+  psych \ 
+  purrr \ 
+  RColorBrewer \ 
+  readr \ 
+  readxl \ 
+  rpart.plot \ 
+  stringr \ 
+  tidyverse \ 
+  writexl

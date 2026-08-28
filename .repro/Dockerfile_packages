@@ -1,0 +1,27 @@
+RUN install2.r --error --skipinstalled \ 
+  checkmate \ 
+  corrplot \ 
+  DALEX \ 
+  forcats \ 
+  future \ 
+  glmnet \ 
+  gridExtra \ 
+  here \ 
+  lgr \ 
+  lme4 \ 
+  mlr3tuning \ 
+  mlr3verse \ 
+  openxlsx \ 
+  papaja \ 
+  paradox \ 
+  paran \ 
+  performance \ 
+  psych \ 
+  purrr \ 
+  RColorBrewer \ 
+  readr \ 
+  readxl \ 
+  rpart.plot \ 
+  stringr \ 
+  tidyverse \ 
+  writexl
