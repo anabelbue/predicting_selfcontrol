@@ -16,6 +16,7 @@ library(here)
 library(forcats)
 library(lgr)
 library(RColorBrewer)
+library(papaja)
 source(here("Scripts", "01_functions.R"))
 
 # load data
@@ -36,9 +37,10 @@ bar_colors <- colors[9:10]  # Select colors 9 and 10 for the bar plot
 final_items_freq_all <- read_csv(here("ML results", "final_var_frequency_all.csv")) %>% pull()
 freq_all_dat <- data %>% dplyr::select(all_of(final_items_freq_all))
 
+names(data)
 # assign items to composites based on the results of the EFA 
 composites <- list(
-  dutifulness_compliance_5 = c("ipc2_5", "ipc3_5", "ipc3_6", "scs04"),
+  dutifulness_compliance_4 = c("ipc2_5", "ipc3_5", "ipc3_6", "scs04"),
   impulse_inhibition_2 = c("hoyle3", "hoyle6")
 )
 
@@ -58,11 +60,11 @@ single_items <- c(
 freq_all_dat_final <- prepare_vars(freq_all_dat, single_items, composites)
 
 # add outcome variable 
-freq_all_dat_final <- cbind(freq_all_dat_final, data[, "freq_con_all_ESM"]) %>% filter(!is.na(freq_con_all_ESM))
+freq_all_dat_final <- cbind(freq_all_dat_final, data[, c("Participant","freq_con_all_ESM")]) %>% filter(!is.na(freq_con_all_ESM))
 
 
 #create dataset that contains the composite scores 
-freq_all_composite <- freq_all_dat_final %>% dplyr::select(dutifulness_compliance_5, impulse_inhibition_2,talkativeness_1,
+freq_all_composite <- freq_all_dat_final %>% dplyr::select(dutifulness_compliance_4, impulse_inhibition_2,talkativeness_1,
                                                         metacognitive_regulation_1, inattention_1, tidiness_1, metacognitive_knowledge_1,
                                                         reappraisal_1, behavior_initiation_1, freq_con_all_ESM)
 
@@ -117,7 +119,7 @@ single_items <- c(bisbas3 = "drive_1",
 intensity_all_dat$ips1 <- 8 - intensity_all_dat$ips1
 
 intensity_all_dat_final <- prepare_vars(intensity_all_dat, single_items, composites)
-intensity_all_dat_final <- cbind(intensity_all_dat_final, data[, "m_intensity_all_ESM"])
+intensity_all_dat_final <- cbind(intensity_all_dat_final, data[, c("Participant","m_intensity_all_ESM")])
 
 #create dataset that contains the composite scores 
 intensity_all_composite <- intensity_all_dat_final %>% dplyr::select(behavior_initiation_6, worry_5, temptation_resistance_2, 
@@ -171,7 +173,7 @@ single_items <- c(ipc6_2 = "error_avoidance_1",
 success_all_dat$ips5 <- 8 - success_all_dat$ips5
 
 success_all_dat_final <- prepare_vars(success_all_dat, single_items, composites)
-success_all_dat_final <- cbind(success_all_dat_final, data[, "m_success_all_ESM"]) %>%filter(!is.na(m_success_all_ESM))
+success_all_dat_final <- cbind(success_all_dat_final, data[, c("Participant", "m_success_all_ESM")]) %>%filter(!is.na(m_success_all_ESM))
 
 #create dataset that contains the composite scores 
 success_all_composite <- success_all_dat_final %>% dplyr::select(capacity_selfcontrol_8, metacognition_5,
@@ -223,7 +225,7 @@ single_items <- c(
 
 freq_init_dat_final <- prepare_vars(freq_init_dat, single_items, composites)
 
-freq_init_dat_final <- cbind(freq_init_dat_final, data[, "freq_con_init_ESM"]) %>% filter(!is.na(freq_con_init_ESM))
+freq_init_dat_final <- cbind(freq_init_dat_final, data[, c("Participant","freq_con_init_ESM")]) %>% filter(!is.na(freq_con_init_ESM))
 
 #create dataset that contains the composite scores 
 freq_init_composite <- freq_init_dat_final %>% dplyr::select(capacity_selfcontrol_4, diligence_compliance_4, inattention_1,
@@ -270,7 +272,7 @@ single_items <- c(bfi1 = "talkativeness_1",
 
 freq_pers_dat_final <- prepare_vars(freq_pers_dat, single_items, composites)
 
-freq_pers_dat_final <- cbind(freq_pers_dat_final, data[, "freq_con_pers_ESM"]) %>% filter(!is.na(freq_con_pers_ESM))
+freq_pers_dat_final <- cbind(freq_pers_dat_final, data[, c("Participant","freq_con_pers_ESM")]) %>% filter(!is.na(freq_con_pers_ESM))
 
 #create dataset that contains the composite scores 
 freq_pers_composite <- freq_pers_dat_final %>% dplyr::select(regulation_5, diligence_compliance_2, tidiness_1,
@@ -305,7 +307,7 @@ dev.off()
 final_items_intensity_init <- read_csv(here("ML results", "final_var_intensity_init.csv")) %>% pull()
 intensity_init_dat <- data %>% dplyr::select(all_of(final_items_intensity_init))
 
-intensity_init_dat <- cbind(intensity_init_dat, data[, "m_intensity_init_ESM"]) %>%
+intensity_init_dat <- cbind(intensity_init_dat, data[, c("Participant","m_intensity_init_ESM")]) %>%
   filter(!is.na(m_intensity_init_ESM))
 
 intensity_init_dat_final <- intensity_init_dat %>% rename(behavior_initiation_1 = ipc5_7, worry_1 = bisbas24)
@@ -348,7 +350,7 @@ intensity_pers_dat[c("ips9", "scs04", "stst4")] <- 8 - intensity_pers_dat[c("ips
 intensity_pers_dat_final <- prepare_vars(intensity_pers_dat, single_items, composites)
 
 
-intensity_pers_dat_final <- cbind(intensity_pers_dat_final, data[, "m_intensity_pers_ESM"]) %>%
+intensity_pers_dat_final <- cbind(intensity_pers_dat_final, data[, c("Participant", "m_intensity_pers_ESM")]) %>%
   filter(!is.na(m_intensity_pers_ESM))
 
 #create dataset that contains the composite scores 
@@ -414,7 +416,7 @@ success_init_dat[,c("ips5", "ips7", "scs08", "stst1")] <-  8 - success_init_dat[
 success_init_dat <- prepare_vars(success_init_dat, single_items, composites)
 
 #create dataset that contains the composite scores 
-success_init_dat_final <- cbind(success_init_dat, data[, "m_success_init_ESM"]) %>% filter(!is.na(m_success_init_ESM))
+success_init_dat_final <- cbind(success_init_dat, data[, c("Participant", "m_success_init_ESM")]) %>% filter(!is.na(m_success_init_ESM))
 success_init_composite <-success_init_dat_final %>% dplyr::select(behavior_initiation_6, attentional_impulsivity_2,
                                                                   impulsive_behavior_3, preserverance_2, metacognitive_knowledge_4,
                                                                   depression_1, talkativeness_1, working_towards_goals_1,
@@ -472,7 +474,7 @@ success_pers_dat <- prepare_vars(success_pers_dat, single_items, composites)
 
 
 #create dataset that contains the composite scores 
-success_pers_dat_final <- cbind(success_pers_dat, data[, "m_success_pers_ESM"]) %>% filter(!is.na(m_success_pers_ESM))
+success_pers_dat_final <- cbind(success_pers_dat, data[, c("Participant","m_success_pers_ESM")]) %>% filter(!is.na(m_success_pers_ESM))
 success_pers_composite <-success_pers_dat_final %>% dplyr::select(self_discipline_5, metacognition_3, ease_persistence_1,
                                                                   depression_1, reward_responsiveness_1,competence_1, 
                                                                   refocusing_after_distraction_1, persistence_despite_fatigue_1, m_success_pers_ESM)
@@ -505,16 +507,258 @@ dev.off()
 
 
 
-# RQ1 & RQ2 (Figure 2)  --------------------------------------------------------
+# RQ1  --------------------------------------------------------------------
+
+set.seed(18237236)
+
+model <- c("frequency across self-control conflicts", "intensity across self-control conflicts", "success across self-control conflicts",
+           "frequency initiation conflicts", "frequency persistence conflicts", "frequency inhibition conflicts", 
+           "intensity initiation conflicts", "intensity persistence conflicts", "intensity inhibition conflicts", 
+           "success initiation conflicts", "success persistence conflicts", "success inhibition conflicts")
+
+final_items <- list(final_items_freq_all, final_items_intensity_all, final_items_success_all, 
+                    final_items_freq_init, final_items_freq_pers, NA, 
+                    final_items_intensity_init, final_items_intensity_pers, NA, 
+                    final_items_success_init, final_items_success_pers, NA)
+outcome_vars <- c("freq_con_all_ESM", "m_intensity_all_ESM", "m_success_all_ESM", 
+                  "freq_con_init_ESM", "freq_con_pers_ESM", NA, 
+                  "m_intensity_init_ESM", "m_intensity_pers_ESM", NA, 
+                  "m_success_init_ESM", "m_success_pers_ESM", NA)
+
+# 
+# # Initialize output table
+# results_table <- data.frame(
+#   Model = character(),
+#   Narrow_items = integer(),
+#   R2_narrow = numeric(),
+#   Other_items = integer(),
+#   Delta_R2 = numeric(),
+#   SC_items = character(),
+#   Other_items = character(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# for (i in seq_along(model)) {
+#   
+#   # Handle inhibition models explicitly
+#   if (grepl("inhibition", model[i])) {
+#     results_table <- rbind(results_table, data.frame(
+#       Model = model[i],
+#       Narrow_items = 0,
+#       R2_narrow = NA,
+#       Other_items = 0,
+#       Delta_R2 = NA,
+#       SC_items = "",
+#       Other_items = "",
+#       stringsAsFactors = FALSE
+#     ))
+#     next
+#   }
+#   
+#   # Get full item set
+#   all_items <- final_items[[i]]
+#   
+#   # Get narrow SC items
+#   narrow_items <- codebook %>%
+#     filter(item_name %in% final_items[[i]], narrow_SC == "yes") %>%
+#     pull(item_name)
+#   
+#   # Subset data for narrow model
+#   narrow_data <- data %>%
+#     dplyr::select(all_of(narrow_items), all_of(outcome_vars[i])) %>%
+#     filter(!is.na(.data[[outcome_vars[i]]]))
+# 
+#   all_data <- data %>% 
+#     dplyr::select(all_of(all_items), all_of(outcome_vars[i])) %>%
+#     filter(!is.na(.data[[outcome_vars[i]]]))
+#   
+#   # Run unregularized models
+#   results_narrow <- unregularized_analysis(narrow_data, outcome_vars[i])
+#   output_narrow <- performance_comparison(results_narrow)
+#   r2_narrow <- output_narrow$avg_rsq
+#   
+#   results_all <- unregularized_analysis(all_data, outcome_vars[i])
+#   output_all <- performance_comparison(results_all)
+#   delta_r2 <- output_all$avg_rsq - r2_narrow
+#   
+#   # Create item summaries
+#   narrow_list <- paste(narrow_items, collapse = ", ")
+#   other_items <- setdiff(all_items, narrow_items)
+#   other_list <- paste(other_items, collapse = ", ")
+#   
+#   # Add to table
+#   results_table <- rbind(results_table, data.frame(
+#     Model = model[i],
+#     Narrow_items = length(narrow_items),
+#     R2_narrow = round(r2_narrow, 3),
+#     Other_items = length(other_items),
+#     Delta_R2 = round(delta_r2, 3),
+#     SC_items = narrow_list,
+#     Other_items = other_list,
+#     stringsAsFactors = FALSE
+#   ))
+# }
+# 
+# writexl::write_xlsx(results_table, here("Tables", "RQ3_Output.xlsx"))
+# 
+# df <- readxl::read_xlsx(here("Tables", "RQ3_Output.xlsx"))
+
+# Updated unregularized_cv_output function
+
+
+# Initialize results table
+results_table <- data.frame(
+  Model = character(),
+  Narrow_items = integer(),
+  R2_narrow = numeric(),
+  Other_items = integer(),
+  Delta_R2 = numeric(),
+  SC_items = character(),
+  Other_SC_items = character(),
+  stringsAsFactors = FALSE
+)
+
+plot_data_list <- list()
+
+set.seed(18237236)
+
+for (i in seq_along(model)) {
+  
+  # Handle inhibition models explicitly
+  if (grepl("inhibition", model[i])) {
+    results_table <- rbind(results_table, data.frame(
+      Model = model[i],
+      Narrow_items = 0,
+      R2_narrow = NA,
+      Other_items = 0,
+      Delta_R2 = NA,
+      SC_items = "",
+      Other_SC_items = "",
+      stringsAsFactors = FALSE
+    ))
+    next
+  }
+  
+  # Get full item set
+  all_items <- final_items[[i]]
+  
+  # Get narrow SC items
+  narrow_items <- codebook %>%
+    filter(item_name %in% final_items[[i]], narrow_SC == "yes") %>%
+    pull(item_name)
+  
+  # Subset data
+  narrow_data <- data %>%
+    dplyr::select(all_of(narrow_items), all_of(outcome_vars[i])) %>%
+    filter(!is.na(.data[[outcome_vars[i]]]))
+  
+  all_data <- data %>%
+    dplyr::select(all_of(all_items), all_of(outcome_vars[i])) %>%
+    filter(!is.na(.data[[outcome_vars[i]]]))
+  
+  # Run models
+  out_narrow <- unregularized_cv_output(narrow_data, outcome_vars[i])
+  out_all    <- unregularized_cv_output(all_data,    outcome_vars[i])
+  
+  r2_narrow <- out_narrow$summary$avg_rsq
+  delta_r2  <- out_all$summary$avg_rsq - r2_narrow
+  
+  # Store fold-level data for plotting
+  plot_data_list[[i]] <- dplyr::bind_rows(
+    dplyr::mutate(out_narrow$folds, Model = model[i], Spec = "Narrow"),
+    dplyr::mutate(out_all$folds,    Model = model[i], Spec = "All")
+  )
+  
+  # Item summaries
+  narrow_list <- paste(narrow_items, collapse = ", ")
+  other_items <- setdiff(all_items, narrow_items)
+  other_list  <- paste(other_items, collapse = ", ")
+  
+  # Add to table
+  results_table <- rbind(results_table, data.frame(
+    Model = model[i],
+    Narrow_items = length(narrow_items),
+    R2_narrow = round(r2_narrow, 3),
+    Other_items = length(other_items),
+    Delta_R2 = round(delta_r2, 3),
+    SC_items = narrow_list,
+    Other_SC_items = other_list,
+    stringsAsFactors = FALSE
+  ))
+}
+
+
+
+# Table 4 -----------------------------------------------------------------
+
+
+writexl::write_xlsx(results_table, here("Tables", "RQ3_Output.xlsx"))
+
+
+
+## Figure 2 ----------------------------------------------------------------
+
+# Combine plot data
+plot_data <- dplyr::bind_rows(plot_data_list)
+plot_data <- plot_data %>%
+  mutate(
+    Model = factor(Model, levels = model),
+    Model = fct_recode(Model,
+                       "frequency across conflicts" = "frequency across self-control conflicts",
+                       "intensity across conflicts"  = "intensity across self-control conflicts",
+                       "success across conflicts"    = "success across self-control conflicts"),
+    Spec = factor(Spec, levels = c("Narrow", "All"))
+  )
+png(
+  filename = here("Plots", "Explained_variance_plot.png"),
+  width = 10* 300,
+  height = 4 * 300,
+  res = 300
+)
+ggplot(plot_data, aes(x = Model, y = rsq, fill = Spec)) +
+  geom_boxplot(
+    width = 0.7,
+    position = position_dodge(width = 0.75),
+    outlier.shape = NA
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "solid",
+    color = "black",
+    linewidth = 0.4
+  ) +
+  scale_x_discrete(drop = FALSE) +   
+  coord_cartesian(ylim = c(-0.3, 0.45)) +
+  scale_fill_manual(
+    values = c(
+      "Narrow" = "#4DAF4A",
+      "All"    = "#377EB8"
+    ),
+    labels = c(
+      "Narrow" = "Only self-control items",
+      "All"    = "All items"
+    )
+  ) +
+  labs(x = NULL, y = expression(R^2), fill = NULL) +
+  theme_apa() +
+  theme(
+    legend.position = "top",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+dev.off()
+
+
+#  RQ2 (Figure 3)  --------------------------------------------------------
 ### Plot the correlational results using the composite scores for Figure 2 of the manuscript 
 #create empty data frame for all aspects for inhibition conflicts which could not be predicted 
 inhib <- data.frame(var = character(0), abs_mean = numeric(0), direction = character(0))
 
 # list containing the correlational results using composite scors 
-stats_data_list <- list(cors_freq_init_c, cors_intensity_init, cors_success_init_c, 
+stats_data_list <- list(cors_freq_all_c, cors_intensity_all_c, cors_success_all_c,
+                        cors_freq_init_c, cors_intensity_init, cors_success_init_c, 
                         cors_freq_pers_c, cors_intensity_pers_c, cors_success_pers_c, 
-                        inhib, inhib, inhib, 
-                        cors_freq_all_c, cors_intensity_all_c, cors_success_all_c)
+                        inhib, inhib, inhib)
 
 
 
@@ -536,7 +780,8 @@ layout(layout_matrix, widths = c(1.5, 3, 3, 3), heights = c(0.5, 2, 2, 2, 2))
 
 # Define column and row names
 column_names <- c("Frequency", "Intensity", "Success")
-row_names <- c("Initiation Conflicts", "Persistence Conflicts", "Inhibition Conflicts", "Overall")
+row_names <- c("Overall", "Initiation Conflicts", "Persistence Conflicts", "Inhibition Conflicts")
+
 
 
 # Reduce margins for text-only plots
@@ -563,6 +808,187 @@ for (row in 1:4) {
 
 dev.off()
 
+
+## Robustness check for unexpected results  --------------------------------
+outcomes <- c("freq_con_all_ESM", "m_intensity_all_ESM", "m_success_all_ESM", 
+                  "freq_con_init_ESM", "freq_con_pers_ESM", "freq_con_inhi_ESM", 
+                  "m_intensity_init_ESM", "m_intensity_pers_ESM", "m_intensity_inhi_ESM",
+                  "m_success_init_ESM", "m_success_pers_ESM", "m_success_inhi_ESM")
+
+##### Frequency of conflicts
+
+# Frequency across conflicts
+run_robustness_check(
+  predictor_dat = freq_all_dat_final,
+  predictors = c("dutifulness_compliance_4", "impulse_inhibition_2",
+                 "talkativeness_1", "inattention_1", "tidiness_1",
+                 "metacognitive_regulation_1", "reappraisal_1",
+                 "metacognitive_knowledge_1", "behavior_initiation_1"),
+  outcomes = outcomes,
+  data = data,
+  filename = "robustness_freq_all.xlsx"
+)
+
+# Intensity across conflicts 
+
+run_robustness_check(
+  predictor_dat = intensity_all_dat_final,
+  predictors = c("behavior_initiation_6", "worry_5", "temptation_resistance_2", 
+                 "metacognitive_regulation_2", "drive_1", "perfectionism_1",
+                 "selfconfidence_1", "metacognitive_knowledge_1", "talkativeness_1"),
+  outcomes = outcomes,
+  data = data,
+  filename = "robustness_intensity_all.xlsx"
+)
+
+# Success across conflicts 
+
+run_robustness_check(
+  predictor_dat = success_all_dat_final,
+  predictors = c("capacity_selfcontrol_8", "metacognition_5", "impulsive_behavior_2", 
+                 "error_avoidance_1", "honesty_1"),
+  outcomes = outcomes,
+  data = data,
+  filename = "robustness_success_all.xlsx"
+)
+
+# Success initiation conflicts 
+run_robustness_check(
+  predictor_dat = success_init_dat_final,
+  predictors = c("behavior_initiation_6", "attentional_impulsivity_2",
+                 "impulsive_behavior_3", "preserverance_2", "metacognitive_knowledge_4",
+                 "depression_1", "talkativeness_1", "working_towards_goals_1",
+                 "plan_implementation_1","persistence_after_success_1"),
+  outcomes = outcomes,
+  data = data,
+  filename = "robustness_success_init.xlsx"
+)
+
+# Success persistence conflicts 
+run_robustness_check(
+  predictor_dat = success_pers_dat_final,
+  predictors = c("self_discipline_5", "metacognition_3", "ease_persistence_1",
+                 "depression_1", "reward_responsiveness_1", "competence_1", 
+                 "refocusing_after_distraction_1", "persistence_despite_fatigue_1"),
+  outcomes = outcomes,
+  data = data,
+  filename = "robustness_success_pers.xlsx"
+)
+
+# check whether the correltional pattern replicates across both halves of the sample 
+set.seed(34934)  # for reproducibility
+
+# Get all participant IDs
+all_ids <- unique(data$Participant)
+
+# Randomly assign to two halves
+sample1_ids <- sample(all_ids, size = floor(length(all_ids) / 2), replace = FALSE)
+sample2_ids <- setdiff(all_ids, sample1_ids)
+
+## Start with the finding that is unique for persistence conflicts 
+success_pers <- left_join(success_pers_dat_final, data[, c("Participant", "m_success_init_ESM")], by = "Participant")
+pers_s1 <- success_pers %>% filter(Participant %in% sample1_ids)
+pers_s2 <- success_pers %>% filter(Participant %in% sample2_ids)
+
+cor(pers_s1[,c("reward_responsiveness_1", "competence_1", "m_success_init_ESM", "m_success_pers_ESM")], use = "complete.obs")
+cor(pers_s1[,c("reward_responsiveness_1", "competence_1",  "m_success_init_ESM", "m_success_pers_ESM")], use = "complete.obs")
+
+
+set.seed(123)
+n_splits <- 1000
+all_ids <- unique(success_pers$Participant)
+
+results <- replicate(n_splits, {
+  sample1_ids <- sample(all_ids, size = floor(length(all_ids) / 2), replace = FALSE)
+  sample2_ids <- setdiff(all_ids, sample1_ids)
+  
+  data_s1 <- success_pers %>% filter(Participant %in% sample1_ids)
+  data_s2 <- success_pers %>% filter(Participant %in% sample2_ids)
+  
+  # Reward responsiveness
+  r1_rew_init <- cor(data_s1$reward_responsiveness_1, data_s1$m_success_init_ESM, use = "complete.obs")
+  r2_rew_init <- cor(data_s2$reward_responsiveness_1, data_s2$m_success_init_ESM, use = "complete.obs")
+  r1_rew_pers <- cor(data_s1$reward_responsiveness_1, data_s1$m_success_pers_ESM, use = "complete.obs")
+  r2_rew_pers <- cor(data_s2$reward_responsiveness_1, data_s2$m_success_pers_ESM, use = "complete.obs")
+  
+  # Competence
+  r1_com_init <- cor(data_s1$competence_1, data_s1$m_success_init_ESM, use = "complete.obs")
+  r2_com_init <- cor(data_s2$competence_1, data_s2$m_success_init_ESM, use = "complete.obs")
+  r1_com_pers <- cor(data_s1$competence_1, data_s1$m_success_pers_ESM, use = "complete.obs")
+  r2_com_pers <- cor(data_s2$competence_1, data_s2$m_success_pers_ESM, use = "complete.obs")
+  
+  c(r1_rew_init = r1_rew_init, r2_rew_init = r2_rew_init,
+    r1_rew_pers = r1_rew_pers, r2_rew_pers = r2_rew_pers,
+    r1_com_init = r1_com_init, r2_com_init = r2_com_init,
+    r1_com_pers = r1_com_pers, r2_com_pers = r2_com_pers)
+}, simplify = TRUE)
+
+results_df <- as.data.frame(t(results))
+
+# Summarize results
+predictors <- list(
+  reward_responsiveness = c("rew"),
+  competence = c("com")
+)
+
+for (pred_name in names(predictors)) {
+  pred <- predictors[[pred_name]]
+  cat("\n", pred_name, ":\n")
+  for (ct in c("init", "pers")) {
+    all_r <- c(results_df[[paste0("r1_", pred, "_", ct)]], 
+               results_df[[paste0("r2_", pred, "_", ct)]])
+    cat(ct, "conflicts - M =", round(fisher_mean(all_r), 3),
+        "SD =", round(sd(all_r), 3), "\n")
+  }
+}
+
+# check whether the correlation patterns replication across both halves of the sample 
+
+
+success_dat <- left_join(success_all_dat_final, data[, c("Participant", "m_success_init_ESM", "m_success_pers_ESM")], by = "Participant")
+# Split data
+data_s1 <- success_dat %>% filter(Participant %in% sample1_ids)
+data_s2 <- success_dat%>% filter(Participant %in% sample2_ids)
+
+cor(data_s1[,c("impulsive_behavior_2", "m_success_init_ESM", "m_success_pers_ESM")], use = "complete.obs")
+cor(data_s2[,c("impulsive_behavior_2", "m_success_init_ESM", "m_success_pers_ESM")], use = "complete.obs")
+
+set.seed(123)
+n_splits <- 1000
+all_ids <- unique(success_dat$Participant)
+
+fisher_mean <- function(r_vec) {
+  z_vals <- 0.5 * log((1 + r_vec) / (1 - r_vec))
+  mean_z <- mean(z_vals, na.rm = TRUE)
+  (exp(2 * mean_z) - 1) / (exp(2 * mean_z) + 1)
+}
+
+results <- replicate(n_splits, {
+  sample1_ids <- sample(all_ids, size = floor(length(all_ids) / 2), replace = FALSE)
+  sample2_ids <- setdiff(all_ids, sample1_ids)
+  
+  data_s1 <- success_dat %>% filter(Participant %in% sample1_ids)
+  data_s2 <- success_dat %>% filter(Participant %in% sample2_ids)
+  
+  r1_init <- cor(data_s1$impulsive_behavior_2, data_s1$m_success_init_ESM, use = "complete.obs")
+  r2_init <- cor(data_s2$impulsive_behavior_2, data_s2$m_success_init_ESM, use = "complete.obs")
+  r1_pers <- cor(data_s1$impulsive_behavior_2, data_s1$m_success_pers_ESM, use = "complete.obs")
+  r2_pers <- cor(data_s2$impulsive_behavior_2, data_s2$m_success_pers_ESM, use = "complete.obs")
+  
+  c(r1_init = r1_init, r2_init = r2_init,
+    r1_pers = r1_pers, r2_pers = r2_pers)
+}, simplify = TRUE)
+
+results_df <- as.data.frame(t(results))
+
+# Combine both halves per outcome
+all_init <- c(results_df$r1_init, results_df$r2_init)
+all_pers <- c(results_df$r1_pers, results_df$r2_pers)
+
+cat("Initiation conflicts - M =", round(fisher_mean(all_init), 3),
+    "SD =", round(sd(all_init), 3), "\n")
+cat("Persistence conflicts - M =", round(fisher_mean(all_pers), 3),
+    "SD =", round(sd(all_pers), 3), "\n")
 # Additional results RQ1 & RQ2 ------------------------------------------
 ### also plot the results of the partial regression coefficients using the composite scores and the robustness check
 
@@ -670,221 +1096,4 @@ for (row in 1:4) {
 dev.off()
 
 
-# RQ3 (Table 6) -----------------------------------------------------------
 
-# create output table 
-set.seed(18237236)
-
-model <- c("frequency across self-control conflicts", "intensity across self-control conflicts", "success across self-control conflicts",
-           "frequency initiation conflicts", "frequency persistence conflicts", "frequency inhibition conflicts", 
-           "intensity initiation conflicts", "intensity persistence conflicts", "intensity inhibition conflicts", 
-           "success initiation conflicts", "success persistence conflicts", "success inhibition conflicts")
-
-final_items <- list(final_items_freq_all, final_items_intensity_all, final_items_success_all, 
-                    final_items_freq_init, final_items_freq_pers, NA, 
-                    final_items_intensity_init, final_items_intensity_pers, NA, 
-                    final_items_success_init, final_items_success_pers, NA)
-outcome_vars <- c("freq_con_all_ESM", "m_intensity_all_ESM", "m_success_all_ESM", 
-                  "freq_con_init_ESM", "freq_con_pers_ESM", NA, 
-                  "m_intensity_init_ESM", "m_intensity_pers_ESM", NA, 
-                  "m_success_init_ESM", "m_success_pers_ESM", NA)
-
-# 
-# # Initialize output table
-# results_table <- data.frame(
-#   Model = character(),
-#   Narrow_items = integer(),
-#   R2_narrow = numeric(),
-#   Other_items = integer(),
-#   Delta_R2 = numeric(),
-#   SC_items = character(),
-#   Other_items = character(),
-#   stringsAsFactors = FALSE
-# )
-# 
-# for (i in seq_along(model)) {
-#   
-#   # Handle inhibition models explicitly
-#   if (grepl("inhibition", model[i])) {
-#     results_table <- rbind(results_table, data.frame(
-#       Model = model[i],
-#       Narrow_items = 0,
-#       R2_narrow = NA,
-#       Other_items = 0,
-#       Delta_R2 = NA,
-#       SC_items = "",
-#       Other_items = "",
-#       stringsAsFactors = FALSE
-#     ))
-#     next
-#   }
-#   
-#   # Get full item set
-#   all_items <- final_items[[i]]
-#   
-#   # Get narrow SC items
-#   narrow_items <- codebook %>%
-#     filter(item_name %in% final_items[[i]], narrow_SC == "yes") %>%
-#     pull(item_name)
-#   
-#   # Subset data for narrow model
-#   narrow_data <- data %>%
-#     dplyr::select(all_of(narrow_items), all_of(outcome_vars[i])) %>%
-#     filter(!is.na(.data[[outcome_vars[i]]]))
-# 
-#   all_data <- data %>% 
-#     dplyr::select(all_of(all_items), all_of(outcome_vars[i])) %>%
-#     filter(!is.na(.data[[outcome_vars[i]]]))
-#   
-#   # Run unregularized models
-#   results_narrow <- unregularized_analysis(narrow_data, outcome_vars[i])
-#   output_narrow <- performance_comparison(results_narrow)
-#   r2_narrow <- output_narrow$avg_rsq
-#   
-#   results_all <- unregularized_analysis(all_data, outcome_vars[i])
-#   output_all <- performance_comparison(results_all)
-#   delta_r2 <- output_all$avg_rsq - r2_narrow
-#   
-#   # Create item summaries
-#   narrow_list <- paste(narrow_items, collapse = ", ")
-#   other_items <- setdiff(all_items, narrow_items)
-#   other_list <- paste(other_items, collapse = ", ")
-#   
-#   # Add to table
-#   results_table <- rbind(results_table, data.frame(
-#     Model = model[i],
-#     Narrow_items = length(narrow_items),
-#     R2_narrow = round(r2_narrow, 3),
-#     Other_items = length(other_items),
-#     Delta_R2 = round(delta_r2, 3),
-#     SC_items = narrow_list,
-#     Other_items = other_list,
-#     stringsAsFactors = FALSE
-#   ))
-# }
-# 
-# writexl::write_xlsx(results_table, here("Tables", "RQ3_Output.xlsx"))
-# 
-# df <- readxl::read_xlsx(here("Tables", "RQ3_Output.xlsx"))
-
-
-plot_data_list <- list()  # collect fold-level results for plotting later
-
-for (i in seq_along(model)) {
-  
-  # Handle inhibition models explicitly
-  if (grepl("inhibition", model[i])) {
-    results_table <- rbind(results_table, data.frame(
-      Model = model[i],
-      Narrow_items = 0,
-      R2_narrow = NA,
-      Other_items = 0,
-      Delta_R2 = NA,
-      SC_items = "",
-      Other_items = "",
-      stringsAsFactors = FALSE
-    ))
-    next
-  }
-  
-  # Get full item set
-  all_items <- final_items[[i]]
-  
-  # Get narrow SC items
-  narrow_items <- codebook %>%
-    filter(item_name %in% final_items[[i]], narrow_SC == "yes") %>%
-    pull(item_name)
-  
-  # Subset data for narrow model
-  narrow_data <- data %>%
-    dplyr::select(all_of(narrow_items), all_of(outcome_vars[i])) %>%
-    filter(!is.na(.data[[outcome_vars[i]]]))
-  
-  all_data <- data %>%
-    dplyr::select(all_of(all_items), all_of(outcome_vars[i])) %>%
-    filter(!is.na(.data[[outcome_vars[i]]]))
-  
-  # Run unregularized models ONCE and keep both summary + folds
-  out_narrow <- unregularized_cv_output(narrow_data, outcome_vars[i])
-  r2_narrow  <- out_narrow$summary$avg_rsq
-  
-  out_all <- unregularized_cv_output(all_data, outcome_vars[i])
-  delta_r2 <- out_all$summary$avg_rsq - r2_narrow
-  
-  # Store fold-level rsq for plotting later (optional but recommended)
-  plot_data_list[[i]] <- dplyr::bind_rows(
-    dplyr::mutate(out_narrow$folds, Model = model[i], Spec = "Narrow"),
-    dplyr::mutate(out_all$folds,    Model = model[i], Spec = "All")
-  )
-  
-  # Create item summaries
-  narrow_list <- paste(narrow_items, collapse = ", ")
-  other_items <- setdiff(all_items, narrow_items)
-  other_list  <- paste(other_items, collapse = ", ")
-  
-  # Add to table
-  results_table <- rbind(results_table, data.frame(
-    Model = model[i],
-    Narrow_items = length(narrow_items),
-    R2_narrow = round(r2_narrow, 3),
-    Other_items = length(other_items),
-    Delta_R2 = round(delta_r2, 3),
-    SC_items = narrow_list,
-    Other_items = other_list,
-    stringsAsFactors = FALSE
-  ))
-}
-
-plot_data <- dplyr::bind_rows(plot_data_list)
-
-plot_data <- plot_data %>%
-  mutate(
-    Model = factor(Model, levels = model),
-    Model = fct_recode(Model,
-                       "frequency across conflicts" = "frequency across self-control conflicts",
-                       "intensity across conflicts"  = "intensity across self-control conflicts",
-                       "success across conflicts" = "success across self-control conflicts"),
-    Spec  = factor(Spec, levels = c("Narrow", "All"))
-  )
-
-
-library(papaja)
-
-png(
-  filename = here("Plots", "Explained_variance_plot.png"),
-  width = 10* 300,
-  height = 4 * 300,
-  res = 300
-)
-ggplot(plot_data, aes(x = Model, y = rsq, fill = Spec)) +
-  geom_boxplot(
-    width = 0.7,
-    position = position_dodge(width = 0.75),
-    outlier.shape = NA
-  ) +
-  geom_hline(
-    yintercept = 0,
-    linetype = "solid",
-    color = "black",
-    linewidth = 0.4
-  ) +
-  scale_x_discrete(drop = FALSE) +   
-  coord_cartesian(ylim = c(-0.3, 0.45)) +
-  scale_fill_manual(
-    values = c(
-      "Narrow" = "#4DAF4A",
-      "All"    = "#377EB8"
-    ),
-    labels = c(
-      "Narrow" = "Only self-control items",
-      "All"    = "All items"
-    )
-  ) +
-  labs(x = NULL, y = expression(R^2), fill = NULL) +
-  theme_apa() +
-  theme(
-    legend.position = "top",
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
-
-dev.off()

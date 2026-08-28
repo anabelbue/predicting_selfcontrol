@@ -232,7 +232,7 @@ describe(long_missings_vars$missing_count) # also only very little missing data 
 
 # Reliability of the person-indices ---------------------------------------
 ESM_dat_prep <- ESM_dat_all %>% 
-  filter(!Participant == "218") %>% 
+  filter(!Participant == "218") %>% # this participant did not provide trait data and has to be excluded 
   group_by(Participant) %>% mutate(conflict= ifelse((Con_Exp == 1 | Con_Exp == 2 | Con_Exp == 3), 1, 0),
                                    init_conflict = ifelse(Con_Exp == 1, 1, 0),
                                    pers_conflict = ifelse(Con_Exp == 2, 1, 0),
@@ -247,27 +247,6 @@ outcomes <- c("conflict", "intensity_all", "success_all", "init_conflict","pers_
 
 
 binary_outcomes <- c("conflict", "init_conflict", "pers_conflict", "inhib_conflict")
-
-# Spearman–Brown style reliability of the mean based on ICC and avg #obs
-rel_mean <- function(icc, Tbar) {
-  (icc * Tbar) / (1 + icc * (Tbar - 1))
-}
-
-# Helper: consider particiapnts for each outcome that are also included in the ML models 
-filter_for_outcome <- function(dat, outcome, is_binary) {
-  dat %>%
-    group_by(Participant) %>%
-    {
-      if (is_binary) {
-        # keep participants with at least one conflict 
-        filter(., any(.data[[outcome]] == 1, na.rm = TRUE))
-      } else {
-        # keep participants with at least one non-missing value
-        filter(., any(!is.na(.data[[outcome]])))
-      }
-    } %>%
-    ungroup()
-}
 
 
 rel_results <- lapply(outcomes, function(outcome) {
@@ -338,5 +317,5 @@ rel_results_df <- bind_rows(rel_results) %>%
 
 writexl::write_xlsx(rel_results_df, here("Tables", "reliability_person_indices.xlsx"))
 
-
+here()
 

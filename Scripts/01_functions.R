@@ -1,5 +1,12 @@
 ### Collection of all functions used
 
+here()
+# Reliability -------------------------------------------------------------
+
+# Spearman–Brown style reliability of the mean based on ICC and avg #obs
+rel_mean <- function(icc, Tbar) {
+  (icc * Tbar) / (1 + icc * (Tbar - 1))
+}
 
 # Item selection ----------------------------------------------------------
 
@@ -180,30 +187,71 @@ unregularized_analysis <- function(data_set, outcome_var) {
   # Return the list of results
   return(results_list)
 }
-
-# compute averages of the output of the unregularized analysis 
-performance_comparison<- function(result_list) {
-  total_z_cor <- total_rsq <- total_mse <- 0
-  for (r in 1:10) {
-    res <- result_list[[r]]
-    z_cor <- 0.5 * log((1 + res$cor) / (1 - res$cor))
-    total_z_cor <- total_z_cor + z_cor
-    total_rsq <- total_rsq + res$rsq
-    total_mse <- total_mse + res$mse
+# Updated unregularized_cv_output function
+unregularized_cv_output <- function(data_set, outcome_var, repeats = 10, folds = 10) {
+  
+  target <- rlang::sym(outcome_var)
+  data_set <- data_set %>% dplyr::filter(!is.na(!!target))
+  task <- mlr3::as_task_regr(data_set, target = outcome_var)
+  
+  learner <- mlr3::as_learner(
+    mlr3pipelines::po("imputemean") %>>%
+      mlr3pipelines::po("scale") %>>%
+      mlr3::lrn("regr.lm")
+  )
+  
+  out <- vector("list", repeats)
+  
+  for (j in seq_len(repeats)) {
+    res <- suppressMessages(suppressWarnings(
+      mlr3::resample(
+        task = task,
+        learner = learner,
+        resampling = mlr3::rsmp("cv", folds = folds),
+        store_models = FALSE
+      )
+    ))
+    
+    preds <- res$predictions()
+    
+    out[[j]] <- purrr::map_dfr(seq_along(preds), function(k) {
+      pred <- preds[[k]]
+      data.frame(
+        rep  = j,
+        fold = k,
+        rsq  = mlr3measures::rsq(pred$truth, pred$response),
+        mse  = mlr3measures::mse(pred$truth, pred$response),
+        cor  = suppressWarnings(stats::cor(pred$truth, pred$response)),
+        stringsAsFactors = FALSE
+      )
+    })
   }
   
-  n <- length(result_list)
-  avg_z_cor <- total_z_cor / n
-  avg_cor <- (exp(2 * avg_z_cor) - 1) / (exp(2 * avg_z_cor) + 1)
+  folds_df <- dplyr::bind_rows(out)
+  
+  # Correct averaging: within repetition first, then across repetitions
+  avg_rsq <- mean(tapply(folds_df$rsq, folds_df$rep, mean), na.rm = TRUE)
+  avg_mse <- mean(tapply(folds_df$mse, folds_df$rep, mean), na.rm = TRUE)
+  avg_cor <- {
+    rep_cors <- tapply(folds_df$cor, folds_df$rep, function(x) {
+      z <- 0.5 * log((1 + x) / (1 - x))
+      mean_z <- mean(z, na.rm = TRUE)
+      (exp(2 * mean_z) - 1) / (exp(2 * mean_z) + 1)
+    })
+    z_vals <- 0.5 * log((1 + rep_cors) / (1 - rep_cors))
+    mean_z <- mean(z_vals, na.rm = TRUE)
+    round((exp(2 * mean_z) - 1) / (exp(2 * mean_z) + 1), 3)
+  }
   
   list(
-    avg_cor = round(avg_cor, 3),
-    avg_rsq = round(total_rsq / n, 3),
-    avg_mse = round(total_mse / n, 3)
+    folds = folds_df,
+    summary = list(
+      avg_rsq = round(avg_rsq, 3),
+      avg_mse = round(avg_mse, 3),
+      avg_cor = avg_cor
+    )
   )
 }
-
-
 
 # Final analysis ----------------------------------------------------------
 
@@ -374,5 +422,71 @@ ABCD_prep <- function(data, groups, single_items) {
   combined <- dplyr::bind_rows(singles, composites)
   
   return(combined)
+}
+
+
+run_robustness_check <- function(predictor_dat, predictors, outcomes, data, filename) {
+  
+  # Merge predictor data with outcomes by Participant
+  all_cors_dat <- predictor_dat %>%
+    dplyr::select(Participant, all_of(predictors)) %>%
+    dplyr::left_join(
+      data %>% dplyr::select(Participant, all_of(outcomes)),
+      by = "Participant"
+    )
+  
+  
+  # Compute correlations and p-values
+  cor_results <- purrr::map_dfr(outcomes, function(outcome) {
+    purrr::map_dfr(predictors, function(predictor) {
+      complete_data <- all_cors_dat %>%
+        dplyr::select(all_of(c(predictor, outcome))) %>%
+        dplyr::filter(complete.cases(.))
+      test <- cor.test(complete_data[[predictor]], complete_data[[outcome]])
+      data.frame(
+        outcome   = outcome,
+        predictor = predictor,
+        r         = round(test$estimate, 3),
+        p_value   = round(test$p.value, 3),
+        stringsAsFactors = FALSE
+      )
+    })
+  })
+  
+  # Reshape to wide format
+  cor_wide_r <- cor_results %>%
+    dplyr::select(outcome, predictor, r) %>%
+    tidyr::pivot_wider(names_from = predictor, values_from = r)
+  
+  cor_wide_p <- cor_results %>%
+    dplyr::select(outcome, predictor, p_value) %>%
+    tidyr::pivot_wider(names_from = predictor, values_from = p_value)
+  
+  # Create workbook with highlighting
+  wb <- openxlsx::createWorkbook()
+  sig_style <- openxlsx::createStyle(fgFill = "#90EE90")
+  
+  openxlsx::addWorksheet(wb, "correlations")
+  openxlsx::writeData(wb, "correlations", cor_wide_r)
+  
+  openxlsx::addWorksheet(wb, "p_values")
+  openxlsx::writeData(wb, "p_values", cor_wide_p)
+  
+  # Highlight significant correlations
+  for (row in 1:nrow(cor_wide_r)) {
+    for (col in 1:(ncol(cor_wide_r) - 1)) {
+      p_val <- cor_wide_p[row, col + 1]
+      if (!is.na(p_val) && p_val < .05) {
+        openxlsx::addStyle(wb, "correlations",
+                           style = sig_style,
+                           rows = row + 1,
+                           cols = col + 1,
+                           gridExpand = FALSE)
+      }
+    }
+  }
+  
+  openxlsx::saveWorkbook(wb, here("Tables", filename), overwrite = TRUE)
+  message("Saved: ", filename)
 }
 
