@@ -9,18 +9,19 @@ library(writexl)
 # load data
 data <- read_csv(here("Data", "prep_data.csv"))
 codebook <- readxl::read_excel(here("Data", "codebook.xlsx"))
-source(here("Scripts", "01_functions.r"))
+source(here("Scripts", "01_functions.R"))
 
 
 
 # Coding Testset 1 --------------------------------------------------------
 
-rater1 <- read_excel(here("ABCD Coding", "Pre-Coding-No1", "Pre-coding-13-11-2023_R1.xlsx"))
-rater2 <- read_excel(here("ABCD Coding", "Pre-Coding-No1", "Pre-coding-13-11-2023_R2.xlsx"))
-rater3 <- read_excel(here("ABCD Coding", "Pre-Coding-No1", "Pre-coding-13-11-2023_R3.xlsx"))
-rater4 <- read_excel(here("ABCD Coding", "Pre-Coding-No1", "Pre-coding-13-11-2023_R4.xlsx"))
-rater5 <- read_excel(here("ABCD Coding", "Pre-Coding-No1", "Pre-coding-13-11-2023_R5.xlsx"))
-rater6 <- read_excel(here("ABCD Coding", "Pre-Coding-No1", "Pre-coding-13-11-2023_R6.xlsx"))
+rater_1 <- read_excel(here("ABCD Coding", "Main coding", "ABCD-coding-TSC-project_R1.xlsx"))
+rater_2 <- read_excel(here("ABCD Coding", "Main coding", "ABCD-coding-TSC-project_R2.xlsx"))
+rater_3 <- read_excel(here("ABCD Coding", "Main coding", "ABCD-coding-TSC-project_R3.xlsx"))
+rater_4 <- read_excel(here("ABCD Coding", "Main coding", "ABCD-coding-TSC-project_R4.xlsx"))
+rater_5 <- read_excel(here("ABCD Coding", "Main coding", "ABCD-coding-TSC-project_R5.xlsx"))
+rater_6 <- read_excel(here("ABCD Coding", "Main coding", "ABCD-coding-TSC-project_R6.xlsx"))
+item_names <- readxl::read_excel(here("ABCD Coding", "Main coding", "coding_items_random_order.xlsx"))
 
 a_codings_t1 <- data.frame(cbind(rater1$`Affect %`, rater2$`Affect %`, rater3$`Affect %`, rater4$`Affect %`, rater5$`Affect %`, rater6$`Affect %`))
 b_codings_t1 <- data.frame(cbind(rater1$`Behavior %`, rater2$`Behavior %`, rater3$`Behavior %`, rater4$`Behavior %`, rater5$`Behavior %`, rater6$`Behavior %`))

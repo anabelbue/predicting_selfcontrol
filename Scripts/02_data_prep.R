@@ -10,6 +10,7 @@ library(corrplot)
 library(readr)
 library(lme4)
 
+source(here("Scripts", "01_functions.R"))
 
 # Load data ---------------------------------------------------------------
 
