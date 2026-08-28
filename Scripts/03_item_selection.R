@@ -168,7 +168,7 @@ saveRDS(final_var_selection, here("ML results", "results_item_sets_2304.rds"))
 
 # Compare the performance to get the final item sets ----------------------
 # frequency across conflicts 
-final_var_selection$freq_con_all_ESM$item_sets 
+
 performance_comparison(final_var_selection$freq_con_all_ESM$performance$`70%_performance`)
 performance_comparison(final_var_selection$freq_con_all_ESM$performance$`80%_performance`) 
 performance_comparison(final_var_selection$freq_con_all_ESM$performance$`90%_performance`) # performs best
