@@ -271,6 +271,33 @@ unregularized_cv_output <- function(data_set, outcome_var, repeats = 10, folds =
   )
 }
 
+# keep original function
+
+performance_comparison <- function(result_list) {
+  total_z_cor <- total_rsq <- total_mse <- 0
+  n <- length(result_list)
+  
+  for (r in 1:n) {
+    res <- result_list[[r]]
+    z_cor <- 0.5 * log((1 + res$cor) / (1 - res$cor))
+    total_z_cor <- total_z_cor + z_cor
+    total_rsq <- total_rsq + res$rsq
+    total_mse <- total_mse + res$mse
+  }
+  
+  avg_z_cor <- total_z_cor / n
+  avg_cor <- (exp(2 * avg_z_cor) - 1) / (exp(2 * avg_z_cor) + 1)
+  
+  list(
+    avg_cor = round(avg_cor, 3),
+    avg_rsq = round(total_rsq / n, 3),
+    avg_mse = round(total_mse / n, 3)
+  )
+}
+
+
+
+
 # Final analysis ----------------------------------------------------------
 
 prepare_vars <- function(data, single_items, groups) {
@@ -346,6 +373,8 @@ final_betas <- function(data, outcome_var) {
   
   return(result)
 }
+
+## add performance comparison 
 
 
 coefficient_plot<- function(stats_df, title = "", left_margin = 9,  x_limits = c(0, .45)) {
