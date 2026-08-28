@@ -161,6 +161,50 @@ calculate_average_perform <- function(results_list) {
 }
 
 
+unregularized_analysis <- function(data_set, outcome_var) {
+  # Create a task
+  target <- sym(outcome_var)  
+  data_set <- data_set %>% filter(!is.na(!!target))
+  task <- as_task_regr(data_set, target = outcome_var)
+  
+  # Store results for each repetition
+  results_list <- list()
+  
+  for (j in 1:10) {
+    # Perform resampling
+    imputer <- po("imputemean")
+    lm<- lrn("regr.lm")
+    scaler <- po("scale")
+    learner <- as_learner(imputer %>>% scaler %>>% lm)
+    
+    # Fully suppress all console output
+    res <- suppressMessages(suppressWarnings(
+      resample(learner = learner, task = task, resampling = rsmp("cv", folds = 10))
+    ))
+    
+    # Correlation with Fisher's z-transformation
+    predictions_list <- res$predictions()
+    cor_values <- lapply(predictions_list, function(pred) {
+      cor(pred$truth, pred$response)
+    })
+    z_values <- 0.5 * log((1 + unlist(cor_values)) / (1 - unlist(cor_values)))
+    mean_z <- mean(z_values, na.rm = TRUE)
+    aggregated_cor <- (exp(2 * mean_z) - 1) / (exp(2 * mean_z) + 1)
+    
+    # R-squared and MSE
+    mean_rsq <- res$aggregate(msr("regr.rsq"))
+    mean_mse <- res$aggregate(msr("regr.mse"))
+    
+    # Store results
+    results_list[[j]] <- list(cor = aggregated_cor, rsq = mean_rsq, mse = mean_mse)
+  }
+  
+  
+  # Return the list of results
+  return(results_list)
+}
+
+
 # Updated unregularized_cv_output function
 unregularized_cv_output <- function(data_set, outcome_var, repeats = 10, folds = 10) {
   
