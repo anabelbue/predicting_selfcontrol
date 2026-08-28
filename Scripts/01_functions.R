@@ -7,6 +7,23 @@ rel_mean <- function(icc, Tbar) {
   (icc * Tbar) / (1 + icc * (Tbar - 1))
 }
 
+# Helper: consider particiapnts for each outcome that are also included in the ML models 
+filter_for_outcome <- function(dat, outcome, is_binary) {
+  dat %>%
+    group_by(Participant) %>%
+    {
+      if (is_binary) {
+        # keep participants with at least one conflict 
+        filter(., any(.data[[outcome]] == 1, na.rm = TRUE))
+      } else {
+        # keep participants with at least one non-missing value
+        filter(., any(!is.na(.data[[outcome]])))
+      }
+    } %>%
+    ungroup()
+}
+
+
 # Item selection ----------------------------------------------------------
 
 perform_elastic_net <- function(task) {
